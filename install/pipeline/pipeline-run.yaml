@@ -1,0 +1,37 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: jx-demo-pipeline-run
+spec:
+  pipelineRef:
+    name: jx-demo-pipeline
+  workspaces:
+    - name: source-workspace
+      subPath: source
+      persistentVolumeClaim:
+        claimName: buildpacks-source-pvc
+    - name: cache-workspace
+      subPath: cache
+      persistentVolumeClaim:
+        claimName: buildpacks-source-pvc
+  params:
+#    - name: argocd-url
+#      value: "argocd-server.argocd" #argocd-server service address
+#    - name: argocd-secret
+#      value: "argocd-oauth" #must be create secret for argocd username and password
+#    - name: app-name
+#      value: "jx-demo"  #argocd application name must be create before on the argocd
+#    - name: app-revision
+#      value: ""
+    - name: repo-url
+      value: "https://github.com/gitcpu-io/jx-demo" #code repo
+    - name: repo-revision
+      value: ""
+    - name: repo-image
+      value: "rubinus/jx-demo"  #image url for docker registry
+    - name: repo-infra
+      value: "github.com/gitcpu-io/jx-demo-infra" #这里不要带https
+    - name: deploy-path
+      value: "jx-demo"
+
+  serviceAccountName: buildpacks-service-account

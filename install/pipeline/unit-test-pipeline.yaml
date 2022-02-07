@@ -1,0 +1,36 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: unit-test-pipeline
+spec:
+  workspaces:
+    - name: source-workspace  # Directory where application source is located.
+  params:
+    - name: repo-url
+    - name: repo-revision
+      type: string
+      default: "master"
+  tasks:
+    - name: git-clone
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: source-workspace
+      params:
+        - name: deleteExisting
+          value: "true"
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.repo-revision)
+    - name: unit-test
+      taskRef:
+        name: unit-test
+      runAfter:
+        - git-clone
+      workspaces:
+        - name: output
+          workspace: source-workspace
+
+

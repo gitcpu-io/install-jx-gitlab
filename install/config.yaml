@@ -1,0 +1,77 @@
+pod_namespace: default
+prowjob_namespace: jx
+push_gateway:
+  serve_metrics: true
+in_repo_config:
+  enabled:
+    devopsman/jx-demo: true
+postsubmits:
+  devopsman/jx-demo: #org/repo的名字,这里需要替换
+    - agent: tekton-pipeline
+      branches:
+        - master  #确定你的仓库也是main的分支，如果是master请修改
+      context: tekton
+      name: tekton-pipeline
+      pipeline_run_spec: #这里的pipeline运行spec需要是上面创建的名字
+        pipelineRef:
+          name: jx-demo-pipeline
+        workspaces:
+          - name: source-workspace
+            subPath: source
+            persistentVolumeClaim:
+              claimName: buildpacks-source-pvc
+          - name: cache-workspace
+            subPath: cache
+            persistentVolumeClaim:
+              claimName: buildpacks-source-pvc
+        params:
+          - name: repo-url
+            value: "http://gitlab.infra.com/devopsman/jx-demo" #code repo
+          - name: repo-revision
+            value: ""
+          - name: repo-image
+            value: "harbor.devopsman.io/devopsman/jx-demo"  #image url for docker registry
+          - name: repo-infra
+            value: "gitlab.infra.com/devopsman/jx-demo-infra" #这里不要带https
+          - name: deploy-path
+            value: "jx-demo"
+
+        serviceAccountName: buildpacks-service-account
+
+#presubmits:
+#  devopsman/jx-demo: #需要替换成你的组织名/仓库名
+#    - name: run-unit-test
+#      agent: tekton-pipeline
+#      context: tekton
+#      always_run: true
+#      rerun_command: /test this
+#      trigger: (?m)^/test( all| this),?(s+|$)
+#      pipeline_run_spec: #这里的pipeline运行spec需要是上面创建的名字
+#        pipelineRef:
+#          name: unit-test-pipeline
+#        workspaces:
+#          - name: source-workspace
+#            subPath: source
+#            persistentVolumeClaim:
+#              claimName: buildpacks-source-pvc
+#        params:
+#          - name: repo-url
+#            value: "http://gitlab.infra.com/devopsman/jx-demo" #code repo
+#          - name: repo-revision
+#            value: ""
+
+tide:
+  target_url: http://lighthouse-webui-plugin/merge/status
+  queries:
+    - repos:
+        - devopsman/jx-demo  #org/repo的名字,这里需要替换
+      labels:
+        - lgtm
+        - approved
+      missingLabels:
+        - do-not-merge
+        - do-not-merge/hold
+        - do-not-merge/work-in-progress
+        - needs-ok-to-test
+        - needs-rebase
+
