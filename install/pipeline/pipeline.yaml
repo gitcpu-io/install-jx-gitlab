@@ -101,6 +101,8 @@ spec:
       params:
         - name: commit-id
           value: $(tasks.git-clone.results.commit)
+        - name: commit-describe
+          value: $(tasks.git-clone.results.describe)
         - name: repo-infra
           value: $(params.repo-infra)
         - name: deploy-path

@@ -105,6 +105,8 @@ spec:
       description: The precise commit SHA that was fetched by this Task.
     - name: url
       description: The precise URL that was fetched by this Task.
+    - name: describe
+      description: The precise commit describe that was fetched by this Task.
   steps:
     - name: clone
       image: "$(params.gitInitImage)"
@@ -207,9 +209,15 @@ spec:
         cd "${CHECKOUT_DIR}"
         ls -la
         RESULT_SHA="$(git rev-parse HEAD)"
+        COMMIT_DESCRIBE="$(git log -1 --pretty=format:%b ${RESULT_SHA})"
+        COMMIT_DESCRIBE_TITLE="$(git log -1 --pretty=format:%s ${RESULT_SHA})"
+        if [ "${COMMIT_DESCRIBE}" == "" ] ; then
+            COMMIT_DESCRIBE = COMMIT_DESCRIBE_TITLE
+        fi
         EXIT_CODE="$?"
         if [ "${EXIT_CODE}" != 0 ] ; then
           exit "${EXIT_CODE}"
         fi
         printf "%s" "${RESULT_SHA}" > "$(results.commit.path)"
         printf "%s" "${PARAM_URL}" > "$(results.url.path)"
+        printf "%s" "${COMMIT_DESCRIBE}" > "$(results.describe.path)"
