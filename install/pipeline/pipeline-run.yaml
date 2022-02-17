@@ -32,6 +32,6 @@ spec:
     - name: repo-infra
       value: "gitlab.infra.com/devopsman/jx-demo-infra" #这里不要带https
     - name: deploy-path
-      value: "dev/jx-demo"
+      value: "jx-demo"
 
   serviceAccountName: buildpacks-service-account
