@@ -1,0 +1,43 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: jx-demo-cd-pipeline
+spec:
+  workspaces:
+    - name: source-workspace  # Directory where application source is located.
+    - name: cache-workspace # Directory where cache is stored
+  params:
+    - name: repo-url
+    - name: repo-revision
+      type: string
+      default: "master"
+    - name: repo-infra
+    - name: deploy-path
+    - name: uat-deploy-path
+  tasks:
+    - name: git-clone
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: source-workspace
+      params:
+        - name: deleteExisting
+          value: "true"
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.repo-revision)
+    - name: sync-dev-to-uat
+      taskRef:
+        name: sync-dev-to-uat
+      params:
+        - name: commit-describe
+          value: $(tasks.git-clone.results.describe)
+        - name: repo-infra
+          value: $(params.repo-infra)
+        - name: deploy-path
+          value: $(params.deploy-path)
+        - name: uat-deploy-path
+          value: $(params.uat-deploy-path)
+

@@ -24,14 +24,14 @@ spec:
 #    - name: app-revision
 #      value: ""
     - name: repo-url
-      value: "https://github.com/gitcpu-io/jx-demo" #code repo
+      value: "http://gitlab.infra.com/devopsman/jx-demo" #code repo
     - name: repo-revision
       value: ""
     - name: repo-image
-      value: "rubinus/jx-demo"  #image url for docker registry
+      value: "devopsman/jx-demo"  #image url for docker registry
     - name: repo-infra
-      value: "github.com/gitcpu-io/jx-demo-infra" #这里不要带https
+      value: "gitlab.infra.com/devopsman/jx-demo-infra" #这里不要带https
     - name: deploy-path
-      value: "jx-demo"
+      value: "dev/jx-demo"
 
   serviceAccountName: buildpacks-service-account

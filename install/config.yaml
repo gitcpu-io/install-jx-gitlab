@@ -34,34 +34,34 @@ postsubmits:
           - name: repo-infra
             value: "gitlab.infra.com/devopsman/jx-demo-infra" #这里不要带https
           - name: deploy-path
-            value: "jx-demo"
+            value: "dev/jx-demo"
 
         serviceAccountName: buildpacks-service-account
 
-#presubmits:
-#  devopsman/jx-demo: #需要替换成你的组织名/仓库名
-#    - name: run-unit-test
-#      agent: tekton-pipeline
-#      context: tekton
-#      always_run: true
-#      rerun_command: /test this
-#      trigger: (?m)^/test( all| this),?(s+|$)
-#      pipeline_run_spec: #这里的pipeline运行spec需要是上面创建的名字
-#        pipelineRef:
-#          name: unit-test-pipeline
-#        workspaces:
-#          - name: source-workspace
-#            subPath: source
-#            persistentVolumeClaim:
-#              claimName: buildpacks-source-pvc
-#        params:
-#          - name: repo-url
-#            value: "http://gitlab.infra.com/devopsman/jx-demo" #code repo
-#          - name: repo-revision
-#            value: ""
+presubmits:
+  devopsman/jx-demo: #需要替换成你的组织名/仓库名
+    - name: run-unit-test
+      agent: tekton-pipeline
+      context: tekton
+      always_run: true
+      rerun_command: /test this
+      trigger: (?m)^/test( all| this),?(s+|$)
+      pipeline_run_spec: #这里的pipeline运行spec需要是上面创建的名字
+        pipelineRef:
+          name: unit-test-pipeline
+        workspaces:
+          - name: source-workspace
+            subPath: source
+            persistentVolumeClaim:
+              claimName: buildpacks-source-pvc
+        params:
+          - name: repo-url
+            value: "http://gitlab.infra.com/devopsman/jx-demo" #code repo
+          - name: repo-revision
+            value: ""
 
 tide:
-  target_url: http://lighthouse-webui-plugin/merge/status
+  target_url: http://lighthouse-jx.devopsman.io/merge/status
   queries:
     - repos:
         - devopsman/jx-demo  #org/repo的名字,这里需要替换

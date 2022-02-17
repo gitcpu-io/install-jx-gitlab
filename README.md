@@ -5,16 +5,14 @@
 这是企业内部gitlab域名：gitlab.infra.com
 
 ## 准备k8s集群，确认work节点数
+kubectl get node
 
 ## 第一步，准备安装仓库
-git clone https://github.com/gitcpu-io/install-jx-gitlab.git
 
-> 把install-jx-gitlab仓库提交到内部的gitlab，在k8s master节点上git clone install-jx-gitlab.git仓库
-
-git clone http://gitlab.infra.com/devopsman/install-jx-gitlab.git
+git clone http://gitlab.infra.com/devopsman/install-jx.git
 
 ### 设置访问域名
-cd install-jx-gitlab
+cd install-jx
 
 vi jx-requirements.yml
 ```yaml
@@ -29,19 +27,19 @@ git push
 
 > 为访问不到镜像做准备，可以执行下面的脚本用来替换，如果你的k8s work节点有多个，请确保每个节点都load到了镜像
 
-cd install-jx-gitlab/install
+cd install-jx/install
 
 ./load_images.sh
 
 ### <a href="#1">设置ShadowSocks客户端代理</a>
 
 ## 第二步，准备oauth personal access token
-> 先登录你的个人gitlab账号，然后创建personal access token
+> 使用root账号创建一个新用户账号，并设置access token
 
-### gitlab
-> 访问个人资料->访问令牌：/profile/personal_access_tokens
+devopsman-jx-bot
 
-Vbm-XynkoCyC-jyyoDhV
+_5z5BDqPTeam-mPELbMs
+
 
 ## 第三步，通过安装jx-git-operator来安装jenkins-x
 
@@ -57,13 +55,14 @@ cd jx-git-operator/charts
 
 > vi values.yaml
 
-- url 就是install-jx-gitlab.git仓库
+- url 就是install-jx.git仓库
 
-- username 就是你的gitlab账号
+- username 就是gitlab的机器账号
 
-- password 就是你的personal access token
+- password 就是personal access token
 
-helm -n jx-git-operator install --set url=http://gitlab.infra.com/devopsman/install-jx-gitlab.git --set username=rubinus --set password=Vbm-XynkoCyC-jyyoDhV jx-git-operator jx-git-operator
+
+helm -n jx-git-operator install --set url=http://gitlab.infra.com/devopsman/install-jx.git --set username=devopsman-jx-bot --set password=_5z5BDqPTeam-mPELbMs jx-git-operator jx-git-operator
 
 > 卸载jx-git-operator
 
@@ -77,13 +76,13 @@ kubectl -n jx get po
 
 kubectl -n jx-observability get po
 
-> 检查helm安装，如果install-jx-gitlab有变动，可以升级
+> 检查helm安装，如果install-jx有变动，可以升级
 
 helm -n jx-git-operator list
 
 cd jx-git-operator/charts
 
-helm -n jx-git-operator install --set url=http://gitlab.infra.com/devopsman/install-jx-gitlab.git --set username=rubinus --set password=Vbm-XynkoCyC-jyyoDhV jx-git-operator jx-git-operator
+helm -n jx-git-operator upgrade --set url=http://gitlab.infra.com/devopsman/install-jx.git --set username=devopsman-jx-bot --set password=_5z5BDqPTeam-mPELbMs jx-git-operator jx-git-operator
 
 
 ## 第四步，安装tekton-dashboard
@@ -114,7 +113,7 @@ kubectl delete ns jx-git-operator
 
 kubectl -n jx delete secret lighthouse-oauth-token
 
-kubectl -n jx create secret generic lighthouse-oauth-token --from-literal=oauth=Vbm-XynkoCyC-jyyoDhV
+kubectl -n jx create secret generic lighthouse-oauth-token --from-literal=oauth=_5z5BDqPTeam-mPELbMs
 
 
 ### 重启
@@ -137,7 +136,7 @@ kubectl -n jx scale deploy lighthouse-webhooks --replicas=1
 
 
 ## 第六步，配置tekton pipeline的资源，作为presubmits和postsubmits
-cd install-jx-gitlab/install
+cd install-jx/install
 
 kubectl -n jx apply -f ./pipeline
 
@@ -319,18 +318,25 @@ docker push harbor.devopsman.io/devopsman/buildpacks-ca:20
 
 ## 如果需要导入证书到服务器上（每个节点）
 
+### Mac 导入证书
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ca.crt
+
+重启docker
+
 ### Centos导入自签证书
 cp ca.crt /etc/pki/ca-trust/source/anchors/
 
 cp harbor.devopsman.io.cert /etc/pki/ca-trust/source/anchors/
 
-> 使用scp到其它节点上
+> 或使用scp到其它节点上
 
 scp ca.crt root@10.10.11.104:/etc/pki/ca-trust/source/anchors/
 
 scp harbor.devopsman.io.cert root@10.10.11.104:/etc/pki/ca-trust/source/anchors/
 
 ln -s /etc/pki/ca-trust/source/anchors/ca.crt /etc/ssl/certs/ca.crt
+
+> 最后执行update
 
 update-ca-trust
 
@@ -347,14 +353,14 @@ update-ca-certificates
 https://github.com/gitcpu-io/jx-demo.git
 
 ### config的ConfigMap
-cd install-jx-gitlab/install
+cd install-jx/install
 
 kubectl -n jx delete cm config
 
 kubectl -n jx create cm config --from-file=config.yaml
 
 ### plugins的ConfigMap
-cd install-jx-gitlab/install
+cd install-jx/install
 
 kubectl -n jx delete cm plugins
 
@@ -362,7 +368,7 @@ kubectl -n jx create cm plugins --from-file=plugins.yaml
 
 ## 第八步 搞定显示color label（如果是对接的github）
 
-cd install-jx-gitlab/install
+cd install-jx/install
 
 > 创建label-config的ConfigMap
 
@@ -385,7 +391,7 @@ kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/st
 
 > 备用
 
-cd install-jx-gitlab/install
+cd install-jx/install
 
 kubectl -n argocd apply -f argocd-install.yaml
 
@@ -423,7 +429,7 @@ ssh://git@gitlab.infra.com/devopsman/jx-demo-infra.git
 
 ### 配置访问jx-demo
 
-cd install-jx-gitlab/install
+cd install-jx/install
 
 kubectl apply -f jx-demo-ing.yaml
 

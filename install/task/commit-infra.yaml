@@ -15,9 +15,9 @@ spec:
     - name: commit-image
       default: cnych/helm-kubectl-curl-git-jq-yq
     - name: git-email
-      default: pipeline@k8s.local
+      default: devopsman-jx-bot@cloudtogo.cn
     - name: git-name
-      default: Tekton Pipeline
+      default: devopsman-jx-bot
   steps:
     - name: update-yaml-push
       image: $(params.commit-image)

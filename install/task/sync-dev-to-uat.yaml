@@ -1,0 +1,75 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: sync-dev-to-uat
+spec:
+  params:
+    - name: repo-infra
+      description: Git repository containing manifest files to update
+      default: gitlab.infra.com/devopsman/jx-demo-infra.git
+    - name: deploy-path
+      description: Manifests files dir
+      default: jx-demo
+    - name: commit-image
+      default: cnych/helm-kubectl-curl-git-jq-yq
+    - name: git-email
+      default: pipeline@k8s.local
+    - name: git-name
+      default: Tekton Pipeline
+    - name: uat-deploy-path
+    - name: commit-describe
+  steps:
+    - name: update-yaml-push
+      image: $(params.commit-image)
+      env:
+        - name: GIT_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: github-token
+              key: username
+              optional: true
+        - name: GIT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: github-token
+              key: password
+              optional: true
+      command: ["/bin/bash"]
+      args:
+        - -c
+        - |
+          set -eu
+          echo Load environment variables from previous steps
+          # source /workspace/env-config
+
+          echo Cloning config project
+
+          git config --global user.email "$(params.git-email)"
+          git config --global user.name "$(params.git-name)"
+          git clone --branch master --depth 1 http://${GIT_USERNAME}:${GIT_PASSWORD}@$(params.repo-infra) repo
+
+          echo Cloned
+
+          cd repo && ls -l
+
+          echo Replacing dev config to uat config
+
+          yq w -i  $(params.uat-deploy-path)/values.yaml 'image.repository'  $(/bin/cat  $(params.deploy-path)/values.yaml | yq r - 'image.repository')
+          yq w -i  $(params.uat-deploy-path)/values.yaml 'image.tag'  $(/bin/cat  $(params.deploy-path)/values.yaml | yq r - 'image.tag')
+          yq w -i  $(params.uat-deploy-path)/values.yaml 'image.oldtag'  $(/bin/cat $(params.deploy-path)/values.yaml | yq r - 'image.oldtag')
+
+          echo Replaced
+
+          echo verifying new value
+
+          echo $(/bin/cat  $(params.uat-deploy-path)/values.yaml | yq r - 'image')
+
+          if ! git diff-index --quiet HEAD --; then
+                      git status
+                      git add .
+                      git commit -m "Auto: $(params.commit-describe)"
+                      git push
+                    else
+                        echo "no changes, git repository is up to date"
+                    fi
+

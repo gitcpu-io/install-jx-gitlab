@@ -46,7 +46,7 @@ jxRequirements:
       enabled: false
       production: false
   pipelineUser:
-    username: rubinus
+    username: devopsman-jx-bot
   repository: bucketrepo
   secretStorage: local
   vault: {}

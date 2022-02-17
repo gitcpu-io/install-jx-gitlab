@@ -1,0 +1,30 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: jx-demo-pipeline-run
+spec:
+  workspaces:
+    - name: source-workspace
+      subPath: source
+      persistentVolumeClaim:
+        claimName: buildpacks-source-pvc
+    - name: cache-workspace
+      subPath: cache
+      persistentVolumeClaim:
+        claimName: buildpacks-source-pvc
+  params:
+    - name: repo-url
+      value: "http://gitlab.infra.com/devopsman/jx-demo" #code repo
+    - name: repo-revision
+      value: ""
+    - name: repo-image
+      value: "harbor.devopsman.io/devopsman/jx-demo"  #image url for docker registry
+    - name: repo-infra
+      value: "gitlab.infra.com/devopsman/jx-demo-infra" #这里不要带https
+    - name: deploy-path
+      value: "dev/jx-demo"
+    - name: uat-deploy-path
+      value: "uat/jx-demo"
+  pipelineRef:
+    name: jx-demo-cd-pipeline
+
