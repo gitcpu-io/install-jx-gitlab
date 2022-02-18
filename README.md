@@ -1,15 +1,29 @@
 # install jenkins-x for gitlab 十步曲
 
-## 准备gitlab仓库
+## 准备工作
 
-这是企业内部gitlab域名：gitlab.infra.com
+- 准备gitlab仓库 <a href="#4">安装gitlab</a>
 
-## 准备k8s集群，确认work节点数
-kubectl get node
+> 这是企业内部gitlab域名：gitlab.infra.com
+
+- 准备k8s集群，确认work节点数 <a href="#2">安装docker</a> <a href="#3">安装k8s</a>
+
+> kubectl get node
+
+- 准备镜像仓库harbor
+
+> <a href="#1">单机安装harbor</a>
+
+- 如需翻墙，请越狱：
+
+> <a href="#1">设置ShadowSocks客户端及代理</a>
+
 
 ## 第一步，准备安装仓库
 
 git clone http://gitlab.infra.com/devopsman/install-jx.git
+
+> 需要fork这个仓库，如果是 yourname/install-jx，注意下面目录也是yourname
 
 ### 设置访问域名
 cd install-jx
@@ -31,7 +45,6 @@ cd install-jx/install
 
 ./load_images.sh
 
-### <a href="#1">设置ShadowSocks客户端代理</a>
 
 ## 第二步，准备oauth personal access token
 > 使用root账号创建一个新用户账号，并设置access token
@@ -151,7 +164,97 @@ kubectl -n jx apply -f ./task
 kubectl -n jx apply -f ./storage
 
 
-# harbor 单机版搭建
+## 第七步，配置Prow
+
+> 以jx-demo为例，作为chatops的代码仓库
+
+http://gitlab.infra.com/devopsman/jx-demo.git
+
+### config的ConfigMap
+cd install-jx/install
+
+kubectl -n jx delete cm config
+
+kubectl -n jx create cm config --from-file=config.yaml
+
+### plugins的ConfigMap
+cd install-jx/install
+
+kubectl -n jx delete cm plugins
+
+kubectl -n jx create cm plugins --from-file=plugins.yaml
+
+## 第八步 搞定显示color label（如果是对接的github）
+
+cd install-jx/install
+
+> 创建label-config的ConfigMap
+
+kubectl -n jx apply -f labels-cm.yaml
+
+> 运行job
+
+kubectl -n jx delete -f label_sync_job.yaml
+
+kubectl -n jx apply -f label_sync_job.yaml
+
+kubectl -n jx delete -f label_sync_cron_job.yaml
+
+kubectl -n jx apply -f label_sync_cron_job.yaml
+
+## 第九步，安装argocd
+kubectl create namespace argocd
+
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+
+> 备用
+
+cd install-jx/install
+
+kubectl -n argocd apply -f argocd-install.yaml
+
+> 创建argocd ingress
+
+kubectl -n argocd apply -f argocd-ing.yaml
+
+> 可以通过http访问
+
+kubectl -n argocd edit deploy argocd-server
+
+在 cmd argocd-server下面添加flag：--insecure
+
+> argocd的初始密码
+
+kubectl -n argocd get secret argocd-initial-admin-secret -oyaml
+
+echo xxxxxxx |base64 -d
+
+> 登录后修改密码，另外创建argocd-oauth的secret给pipeline使用(如果需要)
+
+kubectl -n argocd apply -f ./resources/secret.yaml
+
+### 登录argocd后，创建app
+
+> 通过jx-demo-infra这个配置仓库
+
+http://gitlab.infra.com/devopsman/jx-demo-infra.git
+
+> 或是配置ssh的仓库
+
+ssh://git@gitlab.infra.com/devopsman/jx-demo-infra.git
+
+跳过ssl验证，添加任何一个ssh的私匙
+
+### 配置访问jx-demo
+
+cd install-jx/install
+
+kubectl apply -f jx-demo-ing.yaml
+
+kubectl get ing
+
+
+# <a name="0">harbor 单机版搭建</a>
 
 ```
 安装包下载链接
@@ -304,12 +407,12 @@ admin/Harbor12345
 ## 为builder的buildpacks重新打镜像
 vi Dockerfile
 ```dockerfile
+
 FROM heroku/buildpacks:20
-
+USER root
 ####这个ca.crt来自harbor仓库,当是https时，需要把ca.crt放到这个基础镜像中
-COPY ca.crt /etc/ssl/certs/
-
-RUN ls -la /cnb
+COPY ca.crt /usr/local/share/ca-certificates/
+RUN update-ca-certificates
 
 ```
 docker build -t harbor.devopsman.io/devopsman/buildpacks-ca:20 .
@@ -334,8 +437,6 @@ scp ca.crt root@10.10.11.104:/etc/pki/ca-trust/source/anchors/
 
 scp harbor.devopsman.io.cert root@10.10.11.104:/etc/pki/ca-trust/source/anchors/
 
-ln -s /etc/pki/ca-trust/source/anchors/ca.crt /etc/ssl/certs/ca.crt
-
 > 最后执行update
 
 update-ca-trust
@@ -344,98 +445,6 @@ update-ca-trust
 cp ca.crt /usr/local/share/ca-certificates/
 
 update-ca-certificates
-
-
-## 第七步，配置Prow
-
-> 以jx-demo为例，作为chatops的代码仓库
-
-https://github.com/gitcpu-io/jx-demo.git
-
-### config的ConfigMap
-cd install-jx/install
-
-kubectl -n jx delete cm config
-
-kubectl -n jx create cm config --from-file=config.yaml
-
-### plugins的ConfigMap
-cd install-jx/install
-
-kubectl -n jx delete cm plugins
-
-kubectl -n jx create cm plugins --from-file=plugins.yaml
-
-## 第八步 搞定显示color label（如果是对接的github）
-
-cd install-jx/install
-
-> 创建label-config的ConfigMap
-
-kubectl -n jx apply -f labels-cm.yaml
-
-> 运行job
-
-kubectl -n jx delete -f label_sync_job.yaml
-
-kubectl -n jx apply -f label_sync_job.yaml
-
-kubectl -n jx delete -f label_sync_cron_job.yaml
-
-kubectl -n jx apply -f label_sync_cron_job.yaml
-
-## 第九步，安装argocd
-kubectl create namespace argocd
-
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-
-> 备用
-
-cd install-jx/install
-
-kubectl -n argocd apply -f argocd-install.yaml
-
-> 创建argocd ingress
-
-kubectl -n argocd apply -f argocd-ing.yaml
-
-> 可以通过http访问
-
-kubectl -n argocd edit deploy argocd-server
-
-在 cmd argocd-server下面添加flag：--insecure
-
-> argocd的初始密码
-
-kubectl -n argocd get secret argocd-initial-admin-secret -oyaml
-
-echo xxxxxxx |base64 -d
-
-> 登录后修改密码，另外创建argocd-oauth的secret给pipeline使用(如果需要)
-
-kubectl -n argocd apply -f ./resources/secret.yaml
-
-### 登录argocd后，创建app
-
-> 通过jx-demo-infra这个配置仓库
-
-https://github.com/gitcpu-io/jx-demo-infra.git
-
-> 或是配置ssh的仓库
-
-ssh://git@gitlab.infra.com/devopsman/jx-demo-infra.git
-
-跳过ssl验证，添加任何一个ssh的私匙
-
-### 配置访问jx-demo
-
-cd install-jx/install
-
-kubectl apply -f jx-demo-ing.yaml
-
-kubectl get ing
-
-
 
 # 安装 ShadowSocks 客户端，在其中一台内网机器上（10.10.11.103）
 
@@ -546,3 +555,243 @@ git config --global https.proxy http://10.10.11.103:8118
 git config --global --unset http.proxy
 
 git config --global --unset https.proxy
+
+
+# ===<a name="2">安装docker</a>===
+
+sudo yum install -y yum-utils
+
+sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+> 列表显示versoin
+
+yum list docker-ce --showduplicates | sort -r
+```shell
+docker-ce.x86_64            3:20.10.9-3.el7                     docker-ce-stable
+docker-ce.x86_64            3:20.10.8-3.el7                     docker-ce-stable
+docker-ce.x86_64            3:20.10.7-3.el7                     docker-ce-stable
+docker-ce.x86_64            3:20.10.6-3.el7                     docker-ce-stable
+docker-ce.x86_64            3:20.10.5-3.el7                     docker-ce-stable
+```
+
+> 安装最新
+
+yum install -y docker-ce docker-ce-cli containerd.io
+
+> 安装指定version
+
+yum install -y docker-ce-20.10.8 docker-ce-cli-20.10.8 containerd.io
+
+> 启动
+
+systemctl enable docker && systemctl start docker && systemctl status docker
+
+> 卸载
+
+yum remove -y docker-ce docker-ce-cli containerd.io
+
+rm -rf /var/lib/docker
+
+rm -rf /var/lib/containerd
+
+# ===<a name="3">安装k8s</a>===
+
+## 每台节点执行
+* 准备源
+
+vi /etc/yum.repos.d/kubernetes.repo
+
+```shell
+[kubernetes]
+name=Kubernetes Repo
+baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/
+gpgcheck=0
+gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg
+enabled=1
+```
+
+yum clean all && yum makecache && yum repolist
+
+### 设置路由
+
+modprobe br_netfilter
+
+sysctl -w net.bridge.bridge-nf-call-iptables=1
+
+sysctl -w net.bridge.bridge-nf-call-ip6tables=1
+
+echo "net.bridge.bridge-nf-call-iptables=1" > /etc/sysctl.d/k8s.conf
+
+echo net.ipv4.ip_forward = 1 >> /etc/sysctl.conf && sysctl -p
+
+
+## 每台节点执行
+yum install -y kubeadm-1.21.6 kubelet-1.21.6 kubectl-1.21.6 --disableexclude s=kubernetes
+
+> 让kubelet开机启动
+
+systemctl enable kubelet
+
+> 查看当前版本需要的组件version
+
+kubeadm config images list
+
+> 在master上执行升级计划
+
+kubeadm upgrade plan
+
+kubeadm upgrade apply v1.21.7
+
+### x86-64 架构
+docker pull k8simage/kube-apiserver:v1.21.6
+docker pull k8simage/kube-controller-manager:v1.21.6
+docker pull k8simage/kube-scheduler:v1.21.6
+docker pull k8simage/kube-proxy:v1.21.6
+docker pull k8simage/pause:3.4.1
+docker pull k8simage/etcd:3.4.13-0
+docker pull k8simage/coredns:1.7.0
+
+docker pull weaveworks/weave-kube:2.8.1
+
+> 换镜像tag
+
+docker tag k8simage/kube-apiserver:v1.21.6 k8s.gcr.io/kube-apiserver:v1.21.6
+docker tag k8simage/kube-controller-manager:v1.21.6 k8s.gcr.io/kube-controller-manager:v1.21.6
+docker tag k8simage/kube-scheduler:v1.21.6 k8s.gcr.io/kube-scheduler:v1.21.6
+docker tag k8simage/kube-proxy:v1.21.6 k8s.gcr.io/kube-proxy:v1.21.6
+docker tag k8simage/pause:3.4.1 k8s.gcr.io/pause:3.4.1
+docker tag k8simage/etcd:3.4.13-0 k8s.gcr.io/etcd:3.4.13-0
+docker tag k8simage/coredns:1.7.0 k8s.gcr.io/coredns/coredns:v1.8.0
+
+docker tag weaveworks/weave-kube:2.8.1 ghcr.io/weaveworks/launcher/weave-kube:2.8.1
+
+
+### 创建config配置文件
+vi kubeadm-config.yaml
+
+```yaml
+apiServer:
+  extraArgs:
+    authorization-mode: Node,RBAC
+  timeoutForControlPlane: 4m0s
+apiVersion: kubeadm.k8s.io/v1beta2
+certificatesDir: /etc/kubernetes/pki
+clusterName: kubernetes
+controlPlaneEndpoint: "10.10.11.100:6443"
+controllerManager: {}
+dns:
+  type: CoreDNS
+etcd:
+  local:
+    dataDir: /var/lib/etcd
+kind: ClusterConfiguration
+kubernetesVersion: v1.21.6
+networking:
+  podSubnet: 10.20.0.0/16
+  serviceSubnet: 10.21.0.0/16
+  dnsDomain: cluster.local
+scheduler: {}
+```
+
+## 集群init，在master节点上运行
+
+kubeadm init --config=/root/kubeadm-config.yaml --v=5
+
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+### 在各个节点上执行join
+kubeadm reset
+
+kubeadm join 10.10.11.100:6443 --token lcc52d.8bnpy71m8t7f63ui --discovery-token-ca-cert-hash sha256:f86b59da19d0eab7f6c11975599eed38212f140a2ca0232ba944a34d401a0f86
+
+## 仅master安装weave
+kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
+
+# 或者使用cilium网络插件
+
+##不用kube-proxy组件，在master节点上运行
+
+kubeadm init --config=/root/kubeadm-config.yaml --skip-phases=addon/kube-proxy --v=5
+
+> 运行下面三行
+
+mkdir -p $HOME/.kube
+
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+> 在其它node节点上执行，加入集群
+
+kubeadm join 10.10.11.100:6443 --token gnzgvi.s8psrfgzy48q192k --discovery-token-ca-cert-hash sha256:3b3f79542a1da45f8d81d05df0300dc5ffb5972fe0fb05a3c3ec1d8a2efe2270
+
+## 安装cilium网络插件（内核最好>5.1）
+
+> 安装helm
+
+curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+> 安装helm（二进制）
+
+wget https://get.helm.sh/helm-v3.7.2-linux-amd64.tar.gz
+
+tar zxvf helm-v3.7.2-linux-amd64.tar.gz
+
+cp linux-amd64/helm /usr/local/bin
+
+> 添加helm仓库
+
+helm repo add cilium https://helm.cilium.io/
+
+helm install cilium cilium/cilium --version 1.11.1 \
+--namespace kube-system \
+--set kubeProxyReplacement=strict \
+--set endpointRoutes.enabled=true \
+--set hostServices.protocols=tcp
+--set k8sServiceHost=10.10.11.100 \
+--set k8sServicePort=6443 \
+--set hubble.relay.enabled=true \
+--set hubble.ui.enabled=true  \
+--set prometheus.enabled=true \
+--set operator.prometheus.enabled=true \
+--set hubble.enabled=true \
+--set hubble.metrics.enabled="{dns,drop,tcp,flow,port-distribution,icmp,http}"
+
+> 确认网卡TX值
+
+ethtool -g ens192
+
+> 加载bpf内核模块
+
+modprobe  xt_bpf
+
+> 卸载
+
+helm -n kube-system uninstall cilium
+
+## 安装prometheus和grafana
+kubectl apply -f https://raw.githubusercontent.com/cilium/cilium/1.10.5/examples/kubernetes/addons/prometheus/monitoring-example.yaml
+
+kubectl -n cilium-monitoring get po
+
+## 安装cilium cli
+curl -L --remote-name-all https://github.com/cilium/cilium-cli/releases/latest/download/cilium-linux-amd64.tar.gz{,.sha256sum}
+
+sudo tar xzvfC cilium-linux-amd64.tar.gz /usr/local/bin
+
+rm cilium-linux-amd64.tar.gz{,.sha256sum}
+
+cilium status
+
+## 为节点打标
+
+kubectl label node devopsman104 node-role.kubernetes.io/worker=worker
+
+
+# <a name="4">安装gitlab </a>
+
+docker run -d --restart always --name gitlab --privileged --hostname harbor.devopsman.io --ulimit sigpending=62793 --ulimit nproc=131072 --ulimit nofile=60000 --ulimit core=0 -p 80:80 -p 443:443 -p 22:22 -e GITLAB_OMNIBUS_CONFIG="nginx['redirect_http_to_https'] = true; " -v /srv/gitlab-ce/conf:/etc/gitlab -v /srv/gitlab-ce/logs:/var/log/gitlab -v /srv/gitlab-ce/data:/var/opt/gitlab gitlab
+
+docker run -d --restart always -p 5432:5432 --name postgres -e POSTGRES_DB=gitlab -e POSTGRES_USER=gitlab -e POSTGRES_PASSWORD=gitlab -v /var/lib/cloudtogo/postgressql:/var/lib/postgresql/data postgres
