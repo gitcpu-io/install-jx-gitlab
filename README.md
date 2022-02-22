@@ -1,6 +1,6 @@
 # install jenkins-x for gitlab 十步曲
 
-## 准备工作
+## 准备工作...
 
 - 准备gitlab仓库 <a href="#4">安装gitlab</a>
 
@@ -23,7 +23,7 @@
 
 git clone http://gitlab.infra.com/devopsman/install-jx.git
 
-> 需要fork这个仓库，如果是 yourname/install-jx，注意下面目录也是yourname
+> 需要fork这个仓库，fork后如果是 yourname/install-jx，注意下面目录也是yourname
 
 ### 设置访问域名
 cd install-jx
@@ -33,11 +33,6 @@ vi jx-requirements.yml
   ingress:
     domain: "devopsman.io"
 ```
-git add .
-
-git commit -am "change domain"
-
-git push
 
 > 为访问不到镜像做准备，可以执行下面的脚本用来替换，如果你的k8s work节点有多个，请确保每个节点都load到了镜像
 
@@ -46,15 +41,40 @@ cd install-jx/install
 ./load_images.sh
 
 
-## 第二步，准备oauth personal access token
-> 使用root账号创建一个新用户账号，并设置access token
+## 第二步，准备机器账号，并设置头像与昵称
+> 使用gitlab的root账号创建一个新用户账号，并设置access token
+
+- 账号实例：
 
 devopsman-jx-bot
 
+- 账号access token
+
 _5z5BDqPTeam-mPELbMs
 
+## 第三步，准备替换
 
-## 第三步，通过安装jx-git-operator来安装jenkins-x
+搜索：config-root目录中
+
+- 第一处搜索下面的，替换成自己的安装仓库
+  http://gitlab.infra.com/devopsman/install-jx.git ==> 自己的仓库地址
+
+- 第二处
+  http://gitlab.infra.com  ==> 自己的仓库主域名
+
+- 第三处
+  devopsman-jx-bot ==> 自己仓库的账号
+
+> 修改完成后，提交变更到代码仓库
+
+git add .
+
+git commit -am "change domain and bot account"
+
+git push
+
+
+## 第四步，通过安装jx-git-operator来安装jenkins-x
 
 > 务必要安装在命名空间jx-git-operator中
 
@@ -64,16 +84,9 @@ kubectl create ns jx-git-operator
 
 git clone https://github.com/jenkins-x/jx-git-operator.git
 
+> 安装jx-git-operator
+
 cd jx-git-operator/charts
-
-> vi values.yaml
-
-- url 就是install-jx.git仓库
-
-- username 就是gitlab的机器账号
-
-- password 就是personal access token
-
 
 helm -n jx-git-operator install --set url=http://gitlab.infra.com/devopsman/install-jx.git --set username=devopsman-jx-bot --set password=_5z5BDqPTeam-mPELbMs jx-git-operator jx-git-operator
 
@@ -97,8 +110,11 @@ cd jx-git-operator/charts
 
 helm -n jx-git-operator upgrade --set url=http://gitlab.infra.com/devopsman/install-jx.git --set username=devopsman-jx-bot --set password=_5z5BDqPTeam-mPELbMs jx-git-operator jx-git-operator
 
+> 安装成功，需要删除 jx-git-operator
 
-## 第四步，安装tekton-dashboard
+kubectl delete ns jx-git-operator
+
+## 第五步，安装tekton-dashboard
 
 kubectl apply -f tekton-ing.yaml
 
@@ -109,18 +125,23 @@ kubectl apply -f tekton-dashboard-release.yaml
 kubectl get ing -A
 
 ### 这一步不同，内网解析域名，需要给nginx-controller配置externalIPs指向mater节点
+
+kubectl -n nginx edit deploy ingress-nginx-controller
+
 ```yaml
 sepc:
   externalIPs:
   - 10.10.11.100
 ```
 
+### http://dashboard-jx.devopsman.io/账号密码
+kubectl -n jx get secret jx-basic-auth-user-password -oyaml
 
-## 第五步，如果Oauth App token过期，可以使用Personal access token来创建
+对结果进行base64 decode，比如：
 
-> 安装成功，需要删除 jx-git-operator，使用自己的仓库和prow的配置
+echo YWRtaW4=|base64 -d
 
-kubectl delete ns jx-git-operator
+## 第六步，如果token过期，可以使用Personal access token来创建
 
 > (可选)准备新的personal access token，来生成lighthouse-oauth-token
 
@@ -148,12 +169,12 @@ kubectl -n jx scale deploy lighthouse-tekton-controller --replicas=1
 kubectl -n jx scale deploy lighthouse-webhooks --replicas=1
 
 
-## 第六步，配置tekton pipeline的资源，作为presubmits和postsubmits
+## 第七步，配置tekton pipeline的资源，作为presubmits和postsubmits
 cd install-jx/install
 
 kubectl -n jx apply -f ./pipeline
 
-> 在这一步，一定要去修改为正确的secret中的账号密码（dockerhub、github）
+> 在这一步，一定要去修改为正确的secret.yaml中的地址、账号、密码（dockerhub、github）
 
 kubectl -n jx apply -f ./resources
 
@@ -164,9 +185,9 @@ kubectl -n jx apply -f ./task
 kubectl -n jx apply -f ./storage
 
 
-## 第七步，配置Prow
+## 第八步，配置Prow
 
-> 以jx-demo为例，作为chatops的代码仓库
+> 以jx-demo为例，作为gitops的代码仓库
 
 http://gitlab.infra.com/devopsman/jx-demo.git
 
@@ -183,24 +204,6 @@ cd install-jx/install
 kubectl -n jx delete cm plugins
 
 kubectl -n jx create cm plugins --from-file=plugins.yaml
-
-## 第八步 搞定显示color label（如果是对接的github）
-
-cd install-jx/install
-
-> 创建label-config的ConfigMap
-
-kubectl -n jx apply -f labels-cm.yaml
-
-> 运行job
-
-kubectl -n jx delete -f label_sync_job.yaml
-
-kubectl -n jx apply -f label_sync_job.yaml
-
-kubectl -n jx delete -f label_sync_cron_job.yaml
-
-kubectl -n jx apply -f label_sync_cron_job.yaml
 
 ## 第九步，安装argocd
 kubectl create namespace argocd
@@ -245,7 +248,7 @@ ssh://git@gitlab.infra.com/devopsman/jx-demo-infra.git
 
 跳过ssl验证，添加任何一个ssh的私匙
 
-### 配置访问jx-demo
+## 第十步，配置访问jx-demo
 
 cd install-jx/install
 
@@ -512,6 +515,7 @@ mkdir -p /etc/systemd/system/docker.service.d
 
 vi /etc/systemd/system/docker.service.d/http-proxy.conf
 
+```shell
 [Service]
 Environment="HTTP_PROXY=http://10.10.11.103:8118"
 
@@ -519,6 +523,7 @@ Environment="HTTPS_PROXY=http://10.10.11.103:8118"
 
 Environment="NO_PROXY=localhost,127.0.0.0/8,10.0.0.0/24,harbor.cloud2go.cn,harbor.devopsman.io,docker.io,docker.com"
 
+```
 
 systemctl daemon-reload && systemctl restart docker && systemctl status docker
 
@@ -557,7 +562,7 @@ git config --global --unset http.proxy
 git config --global --unset https.proxy
 
 
-# ===<a name="2">安装docker</a>===
+# <a name="2">安装docker</a>
 
 sudo yum install -y yum-utils
 
@@ -643,6 +648,7 @@ kubeadm upgrade plan
 kubeadm upgrade apply v1.21.7
 
 ### x86-64 架构
+```shell
 docker pull k8simage/kube-apiserver:v1.21.6
 docker pull k8simage/kube-controller-manager:v1.21.6
 docker pull k8simage/kube-scheduler:v1.21.6
@@ -653,8 +659,10 @@ docker pull k8simage/coredns:1.7.0
 
 docker pull weaveworks/weave-kube:2.8.1
 
-> 换镜像tag
+```
 
+> 换镜像tag
+```shell
 docker tag k8simage/kube-apiserver:v1.21.6 k8s.gcr.io/kube-apiserver:v1.21.6
 docker tag k8simage/kube-controller-manager:v1.21.6 k8s.gcr.io/kube-controller-manager:v1.21.6
 docker tag k8simage/kube-scheduler:v1.21.6 k8s.gcr.io/kube-scheduler:v1.21.6
@@ -665,6 +673,7 @@ docker tag k8simage/coredns:1.7.0 k8s.gcr.io/coredns/coredns:v1.8.0
 
 docker tag weaveworks/weave-kube:2.8.1 ghcr.io/weaveworks/launcher/weave-kube:2.8.1
 
+```
 
 ### 创建config配置文件
 vi kubeadm-config.yaml
@@ -743,6 +752,7 @@ cp linux-amd64/helm /usr/local/bin
 
 > 添加helm仓库
 
+```shell
 helm repo add cilium https://helm.cilium.io/
 
 helm install cilium cilium/cilium --version 1.11.1 \
@@ -759,6 +769,7 @@ helm install cilium cilium/cilium --version 1.11.1 \
 --set hubble.enabled=true \
 --set hubble.metrics.enabled="{dns,drop,tcp,flow,port-distribution,icmp,http}"
 
+```
 > 确认网卡TX值
 
 ethtool -g ens192
@@ -792,6 +803,9 @@ kubectl label node devopsman104 node-role.kubernetes.io/worker=worker
 
 # <a name="4">安装gitlab </a>
 
+```shell
 docker run -d --restart always --name gitlab --privileged --hostname harbor.devopsman.io --ulimit sigpending=62793 --ulimit nproc=131072 --ulimit nofile=60000 --ulimit core=0 -p 80:80 -p 443:443 -p 22:22 -e GITLAB_OMNIBUS_CONFIG="nginx['redirect_http_to_https'] = true; " -v /srv/gitlab-ce/conf:/etc/gitlab -v /srv/gitlab-ce/logs:/var/log/gitlab -v /srv/gitlab-ce/data:/var/opt/gitlab gitlab
 
 docker run -d --restart always -p 5432:5432 --name postgres -e POSTGRES_DB=gitlab -e POSTGRES_USER=gitlab -e POSTGRES_PASSWORD=gitlab -v /var/lib/cloudtogo/postgressql:/var/lib/postgresql/data postgres
+
+```
