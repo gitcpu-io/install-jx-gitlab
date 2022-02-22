@@ -10,6 +10,8 @@ spec:
     - name: repo-revision
       type: string
       default: "master"
+    - name: package
+      default: "jx-demo"
   tasks:
     - name: git-clone
       taskRef:
@@ -24,11 +26,22 @@ spec:
           value: $(params.repo-url)
         - name: revision
           value: $(params.repo-revision)
+    - name: golangci-lint
+      taskRef:
+        name: golangci-lint
+      runAfter:
+        - git-clone
+      workspaces:
+        - name: output
+          workspace: source-workspace
+      params:
+        - name: package
+          value: $(params.package)
     - name: unit-test
       taskRef:
         name: unit-test
       runAfter:
-        - git-clone
+        - golangci-lint
       workspaces:
         - name: output
           workspace: source-workspace
