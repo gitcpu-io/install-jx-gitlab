@@ -61,7 +61,7 @@ spec:
             - name: GIT_AUTHOR_NAME
               value: jenkins-x-bot
             - name: GIT_SECRET_SERVER
-              value: http://gitlab.infra.com
+              value: https://gitlab.infra.local
             - name: TRACES_EXPORTER_ENDPOINT
               value: tempo.jx-observability:14268
             - name: TRACES_EXPORTER_TYPE

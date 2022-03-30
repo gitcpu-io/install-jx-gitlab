@@ -2,6 +2,7 @@ approve:
   - lgtm_acts_as_approve: false
     repos:
       - devopsman/jx-demo
+      - devopsman/install-jx
     require_self_approval: true
 config_updater:
   gzip: false
@@ -11,7 +12,6 @@ config_updater:
     plugins.yaml:
       name: plugins
 external_plugins:
-  Replace: true
   entries:
     - name: cd-indicators
       endpoint: "http://cd-indicators.jx.svc.cluster.local/lighthouse/events"
@@ -20,10 +20,11 @@ external_plugins:
 triggers:
   - repos:
       - devopsman/jx-demo
+      - devopsman/install-jx
     ignore_ok_to_test: false
     elide_skipped_contexts: false
 plugins:
-  devopsman/jx-demo:
+  devopsman:
     - config-updater
     - approve
     - assign

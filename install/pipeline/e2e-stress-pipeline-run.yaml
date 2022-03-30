@@ -1,30 +1,35 @@
 apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
-  name: jx-demo-cd-pipeline-run
+  name: jwt-demo-pipeline-run
+  namespace: jx
 spec:
+  pipelineRef:
+    name: jwt-demo-pipeline
   workspaces:
     - name: source-workspace
       subPath: source
       persistentVolumeClaim:
-        claimName: buildpacks-source-pvc
+        claimName: e2e-stress-source-pvc
     - name: cache-workspace
       subPath: cache
       persistentVolumeClaim:
-        claimName: buildpacks-source-pvc
+        claimName: e2e-stress-source-pvc
   params:
     - name: repo-url
       value: "https://gitlab.infra.local/devopsman/jx-demo" #code repo
     - name: repo-revision
-      value: ""
+      value: "core"
+    - name: svc-addrs
+      value: "http://jx-demo.default:80/"
     - name: repo-image
-      value: "harbor.devopsman.io/devopsman/jx-demo"  #image url for docker registry
+      value: "devopsman/jx-demo"  #image url for docker registry
     - name: repo-infra
       value: "gitlab.infra.local/devopsman/jx-demo-infra" #这里不要带https
     - name: deploy-path
       value: "staging/jx-demo"
     - name: prod-deploy-path
       value: "prod/jx-demo"
-  pipelineRef:
-    name: jx-demo-cd-pipeline
 
+
+  serviceAccountName: buildpacks-service-account

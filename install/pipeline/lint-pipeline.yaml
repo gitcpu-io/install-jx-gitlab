@@ -1,0 +1,38 @@
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: lint-pipeline
+  namespace: jx
+spec:
+  params:
+    - name: repo-url
+      type: string
+    - default: master
+      name: repo-revision
+      type: string
+  tasks:
+    - name: git-clone
+      params:
+        - name: deleteExisting
+          value: 'true'
+        - name: url
+          value: $(params.repo-url)
+        - name: revision
+          value: $(params.repo-revision)
+      taskRef:
+        kind: Task
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: source-workspace
+    - name: lint
+      runAfter:
+        - git-clone
+      taskRef:
+        kind: Task
+        name: golangci-lint
+      workspaces:
+        - name: output
+          workspace: source-workspace
+  workspaces:
+    - name: source-workspace

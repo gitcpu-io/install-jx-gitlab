@@ -34,7 +34,7 @@ spec:
             - name: "GIT_KIND"
               value: "gitlab"
             - name: "GIT_SERVER"
-              value: "http://gitlab.infra.com"
+              value: "https://gitlab.infra.local"
             - name: "GIT_USER"
               value: devopsman-jx-bot
             - name: "GIT_TOKEN"

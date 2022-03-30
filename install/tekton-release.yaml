@@ -1831,87 +1831,87 @@ spec:
             # for script mode to work with windows we need a powershell image
             # pinning to nanoserver tag as of July 15 2021
             #  "-shell-image-win", "mcr.microsoft.com/powershell:nanoserver@sha256:b6d5ff841b78bdf2dfed7550000fd4f3437385b8fa686ec0f010be24777654d6"]
-              volumeMounts:
-                - name: config-logging
-                  mountPath: /etc/config-logging
-                - name: config-registry-cert
-                  mountPath: /etc/config-registry-cert
-                env:
-                  - name: SYSTEM_NAMESPACE
-                    valueFrom:
-                      fieldRef:
-                        fieldPath: metadata.namespace
-                  # These phony AWS credentials are here to work around a bug in the aws go sdk
-                  # that causes extremely long delays in the execution of tasks after the initial
-                  # deployment of the Tekton Pipelines controller. See issue https://github.com/tektoncd/pipeline/issues/4087
-                  # for more information.
-                  - name: AWS_ACCESS_KEY_ID
-                    value: foobarbaz
-                  - name: AWS_SECRET_ACCESS_KEY
-                    value: foobarbaz
-                  - name: AWS_DEFAULT_REGION
-                    value: foobarbaz
-                  # If you are changing these names, you will also need to update
-                  # the controller's Role in 200-role.yaml to include the new
-                  # values in the "configmaps" "get" rule.
-                  - name: CONFIG_DEFAULTS_NAME
-                    value: config-defaults
-                  - name: CONFIG_LOGGING_NAME
-                    value: config-logging
-                  - name: CONFIG_OBSERVABILITY_NAME
-                    value: config-observability
-                  - name: CONFIG_ARTIFACT_BUCKET_NAME
-                    value: config-artifact-bucket
-                  - name: CONFIG_ARTIFACT_PVC_NAME
-                    value: config-artifact-pvc
-                  - name: CONFIG_FEATURE_FLAGS_NAME
-                    value: feature-flags
-                  - name: CONFIG_LEADERELECTION_NAME
-                    value: config-leader-election
-                  - name: SSL_CERT_FILE
-                    value: /etc/config-registry-cert/cert
-                  - name: SSL_CERT_DIR
-                    value: /etc/ssl/certs
-                  - name: METRICS_DOMAIN
-                    value: tekton.dev/pipeline
-                securityContext:
-                  allowPrivilegeEscalation: false
-                  capabilities:
-                    drop:
-                      - all
-                  # User 65532 is the distroless nonroot user ID
-                  runAsUser: 65532
-                  runAsGroup: 65532
-                ports:
-                  - name: metrics
-                    containerPort: 9090
-                  - name: profiling
-                    containerPort: 8008
-                  - name: probes
-                    containerPort: 8080
-                livenessProbe:
-                  httpGet:
-                    path: /health
-                    port: probes
-                    scheme: HTTP
-                  initialDelaySeconds: 5
-                  periodSeconds: 10
-                  timeoutSeconds: 5
-                readinessProbe:
-                  httpGet:
-                    path: /readiness
-                    port: probes
-                    scheme: HTTP
-                  initialDelaySeconds: 5
-                  periodSeconds: 10
-                  timeoutSeconds: 5
-                volumes:
-                  - name: config-logging
-                    configMap:
-                      name: config-logging
-                  - name: config-registry-cert
-                    configMap:
-                      name: config-registry-cert
+          volumeMounts:
+            - name: config-logging
+              mountPath: /etc/config-logging
+            - name: config-registry-cert
+              mountPath: /etc/config-registry-cert
+          env:
+            - name: SYSTEM_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            # These phony AWS credentials are here to work around a bug in the aws go sdk
+            # that causes extremely long delays in the execution of tasks after the initial
+            # deployment of the Tekton Pipelines controller. See issue https://github.com/tektoncd/pipeline/issues/4087
+            # for more information.
+            - name: AWS_ACCESS_KEY_ID
+              value: foobarbaz
+            - name: AWS_SECRET_ACCESS_KEY
+              value: foobarbaz
+            - name: AWS_DEFAULT_REGION
+              value: foobarbaz
+            # If you are changing these names, you will also need to update
+            # the controller's Role in 200-role.yaml to include the new
+            # values in the "configmaps" "get" rule.
+            - name: CONFIG_DEFAULTS_NAME
+              value: config-defaults
+            - name: CONFIG_LOGGING_NAME
+              value: config-logging
+            - name: CONFIG_OBSERVABILITY_NAME
+              value: config-observability
+            - name: CONFIG_ARTIFACT_BUCKET_NAME
+              value: config-artifact-bucket
+            - name: CONFIG_ARTIFACT_PVC_NAME
+              value: config-artifact-pvc
+            - name: CONFIG_FEATURE_FLAGS_NAME
+              value: feature-flags
+            - name: CONFIG_LEADERELECTION_NAME
+              value: config-leader-election
+            - name: SSL_CERT_FILE
+              value: /etc/config-registry-cert/cert
+            - name: SSL_CERT_DIR
+              value: /etc/ssl/certs
+            - name: METRICS_DOMAIN
+              value: tekton.dev/pipeline
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - all
+            # User 65532 is the distroless nonroot user ID
+            runAsUser: 65532
+            runAsGroup: 65532
+          ports:
+            - name: metrics
+              containerPort: 9090
+            - name: profiling
+              containerPort: 8008
+            - name: probes
+              containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: probes
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /readiness
+              port: probes
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+      volumes:
+        - name: config-logging
+          configMap:
+            name: config-logging
+        - name: config-registry-cert
+          configMap:
+            name: config-registry-cert
 ---
 apiVersion: v1
 kind: Service

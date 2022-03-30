@@ -37,13 +37,40 @@ spec:
       params:
         - name: package
           value: $(params.package)
-    - name: unit-test
+    #    - name: code-analysis
+    #      taskRef:
+    #        name: sonarqube-scanner
+    #      runAfter:
+    #        - git-clone
+    #      params:
+    #        - name: SONAR_HOST_URL
+    #          value: http://10.10.11.106:9000
+    #        # value: http://sonarqube.devopsman.io
+    #        - name: SONAR_LOGIN
+    #          value: 469d3fcce520017e0cd699706404a4db8a1938e9
+    #        # value: 2eff6e1e5acb83cd6716b7656b198cf4518dcc3b
+    #        - name: SONAR_PROJECT_KEY
+    #          value: devopsman_jx-demo_AX8klNKSC0ZQ0grt_Om4
+    #        # value: devopsman_jx-demo_AX8kNOfSiMma7ZsplPQi
+    #      workspaces:
+    #        - name: output
+    #          workspace: source-workspace
+    #        - name: sonar-settings
+    #          workspace: source-workspace
+    - name: golang-test
       taskRef:
-        name: unit-test
+        name: golang-test
+      #        name: golang-test-simple
       runAfter:
         - golangci-lint
+      #        - git-clone
       workspaces:
         - name: output
           workspace: source-workspace
+      params:
+        - name: package
+          value: $(params.package)
+        - name: packages
+          value: "."
 
 

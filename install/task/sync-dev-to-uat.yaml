@@ -1,22 +1,23 @@
 apiVersion: tekton.dev/v1beta1
 kind: Task
 metadata:
-  name: sync-dev-to-uat
+  name: sync-staging-to-prod
 spec:
   params:
     - name: repo-infra
       description: Git repository containing manifest files to update
-      default: gitlab.infra.com/devopsman/jx-demo-infra.git
+      default: gitlab.infra.local/devopsman/jx-demo-infra.git
     - name: deploy-path
       description: Manifests files dir
       default: jx-demo
     - name: commit-image
-      default: cnych/helm-kubectl-curl-git-jq-yq
+#      default: cnych/helm-kubectl-curl-git-jq-yq
+      default: harbor.devopsman.io/devopsman/commit-infra:v1.1
     - name: git-email
-      default: pipeline@k8s.local
+      default: devopsman-jx-bot@cloudtogo.cn
     - name: git-name
-      default: Tekton Pipeline
-    - name: uat-deploy-path
+      default: devopsman-jx-bot
+    - name: prod-deploy-path
     - name: commit-describe
   steps:
     - name: update-yaml-push
@@ -46,23 +47,23 @@ spec:
 
           git config --global user.email "$(params.git-email)"
           git config --global user.name "$(params.git-name)"
-          git clone --branch master --depth 1 http://${GIT_USERNAME}:${GIT_PASSWORD}@$(params.repo-infra) repo
+          git clone --branch master --depth 1 https://${GIT_USERNAME}:${GIT_PASSWORD}@$(params.repo-infra) repo
 
           echo Cloned
 
           cd repo && ls -l
 
-          echo Replacing dev config to uat config
+          echo Replacing dev config to prod config
 
-          yq w -i  $(params.uat-deploy-path)/values.yaml 'image.repository'  $(/bin/cat  $(params.deploy-path)/values.yaml | yq r - 'image.repository')
-          yq w -i  $(params.uat-deploy-path)/values.yaml 'image.tag'  $(/bin/cat  $(params.deploy-path)/values.yaml | yq r - 'image.tag')
-          yq w -i  $(params.uat-deploy-path)/values.yaml 'image.oldtag'  $(/bin/cat $(params.deploy-path)/values.yaml | yq r - 'image.oldtag')
+          yq w -i  $(params.prod-deploy-path)/values.yaml 'image.repository'  $(/bin/cat  $(params.deploy-path)/values.yaml | yq r - 'image.repository')
+          yq w -i  $(params.prod-deploy-path)/values.yaml 'image.tag'  $(/bin/cat  $(params.deploy-path)/values.yaml | yq r - 'image.tag')
+          yq w -i  $(params.prod-deploy-path)/values.yaml 'image.oldtag'  $(/bin/cat $(params.deploy-path)/values.yaml | yq r - 'image.oldtag')
 
           echo Replaced
 
           echo verifying new value
 
-          echo $(/bin/cat  $(params.uat-deploy-path)/values.yaml | yq r - 'image')
+          echo $(/bin/cat  $(params.prod-deploy-path)/values.yaml | yq r - 'image')
 
           if ! git diff-index --quiet HEAD --; then
                       git status

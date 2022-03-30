@@ -1,0 +1,26 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: kaniko
+  namespace: jx
+spec:
+  workspaces:
+    - name: source-workspace
+      subPath: source
+      persistentVolumeClaim:
+        claimName: buildpacks-source-pvc
+    - name: cache-workspace
+      subPath: cache
+      persistentVolumeClaim:
+        claimName: buildpacks-source-pvc
+  params:
+    - name: repo-url
+      value: https://gitlab.infra.local/xiekaifen/jx-demo
+    - name: version
+      value: v1.6.0
+    - name: destination
+      value: "registry.local/buildpack-build/jx-demo:202202231427"
+    - name: no-push
+      value: "true"
+  pipelineRef:
+    name: kaniko

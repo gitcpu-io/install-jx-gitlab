@@ -1,0 +1,28 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: e2e-test
+  namespace: jx
+spec:
+  params:
+  - name: context
+    description: "path to the directory to use as context."
+    default: "test/e2e"
+  - name: addrs
+    description: "The address that the server listens to"
+    type: string
+    default: "http://localhost:9090/"
+  - name: E2E_STRESS_IMAGE
+    description: "basc image"
+  workspaces:
+  - name: source
+    mountPath: /workspace/output
+  steps:
+    - name: run-e2e-test
+      image: $(params.E2E_STRESS_IMAGE)
+      workingDir: $(workspaces.source.path)/$(params.context)
+      env:
+      - name: ADDRS
+        value: "$(params.addrs)"
+      script: |
+        ginkgo

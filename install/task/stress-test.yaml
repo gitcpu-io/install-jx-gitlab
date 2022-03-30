@@ -1,0 +1,23 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: stress-test
+  namespace: jx
+spec:
+  description: >-
+    This Task is task to stress test.
+  params:
+  - name: addrs
+    description: "The address that the server listens to"
+    type: string
+    default: "http://localhost:9090/"
+  - name: E2E_STRESS_IMAGE
+    description: "basc image"
+  steps:
+    - name: run-stress-test
+      image: $(params.E2E_STRESS_IMAGE)
+      env:
+      - name: ADDRS
+        value: "$(params.addrs)"
+      script: |
+        go-stress-testing -c 300 -n 50 -u ${ADDRS}usercount

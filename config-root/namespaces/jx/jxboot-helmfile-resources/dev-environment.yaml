@@ -13,7 +13,7 @@ metadata:
 spec:
   source:
     ref: "master"
-    url: http://gitlab.infra.com/devopsman/install-jx.git
+    url: https://gitlab.infra.local/devopsman/install-jx.git
   kind: Development
   label: Development
   namespace: jx
@@ -27,7 +27,7 @@ spec:
       name: jx-meta-pipeline
     dockerRegistryOrg: ""
     envOrganisation: todo
-    gitServer: http://gitlab.infra.com
+    gitServer: https://gitlab.infra.local
     kubeProvider: "kubernetes"
     pipelineUsername: "devopsman-jx-bot"
     pipelineUserEmail: "jenkins-x@googlegroups.com"

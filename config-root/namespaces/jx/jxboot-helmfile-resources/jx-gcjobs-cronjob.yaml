@@ -32,7 +32,7 @@ spec:
                 - gc
                 - jobs
                 - --namespace
-                - jx-git-operator
+                - jx
               imagePullPolicy: IfNotPresent
               image: "ghcr.io/jenkins-x/jx-boot:3.2.243"
               env:

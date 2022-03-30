@@ -40,7 +40,7 @@ spec:
             - name: "LH_CUSTOM_TRIGGER_COMMAND"
               value: "jx"
             - name: "GIT_SERVER"
-              value: "http://gitlab.infra.com"
+              value: "https://gitlab.infra.local"
             - name: "GIT_USER"
               value: devopsman-jx-bot
             - name: "GIT_TOKEN"

@@ -11,13 +11,13 @@ metadata:
   namespace: jx
 spec:
   description: "the git repository for the Dev environment"
-  provider: "http://gitlab.infra.com"
+  provider: "https://gitlab.infra.local"
   providerKind: 'github'
   providerName: 'github'
   org: "devopsman"
   repo: "install-jx"
-  httpCloneURL: "http://gitlab.infra.com/devopsman/install-jx.git"
-  url: "http://gitlab.infra.com/devopsman/install-jx.git"
+  httpCloneURL: "https://gitlab.infra.local/devopsman/install-jx.git"
+  url: "https://gitlab.infra.local/devopsman/install-jx.git"
   scheduler:
     kind: Scheduler
     name: "in-repo"

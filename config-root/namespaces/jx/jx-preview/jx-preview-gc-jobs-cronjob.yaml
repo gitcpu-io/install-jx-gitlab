@@ -27,7 +27,7 @@ spec:
             - command:
                 - /bin/sh
                 - -c
-                - jx gitops git setup --namespace jx --secret tekton-git --git-provider http://gitlab.infra.com && jx preview gc
+                - jx gitops git setup --namespace jx --secret tekton-git --git-provider https://gitlab.infra.local && jx preview gc
               env:
                 - name: XDG_CONFIG_HOME
                   value: /home

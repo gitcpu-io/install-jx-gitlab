@@ -5,11 +5,12 @@ push_gateway:
 in_repo_config:
   enabled:
     devopsman/jx-demo: true
+    devopsman/install-jx: true
 postsubmits:
   devopsman/jx-demo: #org/repo的名字,这里需要替换
     - agent: tekton-pipeline
       branches:
-        - master  #确定你的仓库也是main的分支，如果是master请修改
+        - core  #确定你的仓库也是main的分支，如果是master请修改
       context: tekton
       name: tekton-pipeline
       pipeline_run_spec: #这里的pipeline运行spec需要是上面创建的名字
@@ -26,15 +27,15 @@ postsubmits:
               claimName: buildpacks-source-pvc
         params:
           - name: repo-url
-            value: "http://gitlab.infra.com/devopsman/jx-demo" #code repo
+            value: "https://gitlab.infra.local/devopsman/jx-demo" #code repo
           - name: repo-revision
-            value: ""
+            value: "core"
           - name: repo-image
             value: "harbor.devopsman.io/devopsman/jx-demo"  #image url for docker registry
           - name: repo-infra
-            value: "gitlab.infra.com/devopsman/jx-demo-infra" #这里不要带https
+            value: "gitlab.infra.local/devopsman/jx-demo-infra"
           - name: deploy-path
-            value: "jx-demo"
+            value: "staging/jx-demo"
 
         serviceAccountName: buildpacks-service-account
 
@@ -43,7 +44,7 @@ presubmits:
     - name: run-unit-test
       agent: tekton-pipeline
       context: tekton
-      always_run: true
+      always_run: false
       rerun_command: /test this
       trigger: (?m)^/test( all| this),?(s+|$)
       pipeline_run_spec: #这里的pipeline运行spec需要是上面创建的名字
@@ -56,15 +57,16 @@ presubmits:
               claimName: buildpacks-source-pvc
         params:
           - name: repo-url
-            value: "http://gitlab.infra.com/devopsman/jx-demo" #code repo
+            value: "https://gitlab.infra.local/devopsman/jx-demo" #code repo
           - name: repo-revision
-            value: ""
+            value: "core"
 
 tide:
   target_url: http://lighthouse-jx.devopsman.io/merge/status
   queries:
     - repos:
         - devopsman/jx-demo  #org/repo的名字,这里需要替换
+        - devopsman/install-jx  #org/repo的名字,这里需要替换
       labels:
         - lgtm
         - approved
@@ -72,6 +74,5 @@ tide:
         - do-not-merge
         - do-not-merge/hold
         - do-not-merge/work-in-progress
-        - needs-ok-to-test
         - needs-rebase
 

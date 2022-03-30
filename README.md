@@ -4,7 +4,7 @@
 
 - 准备gitlab仓库 <a href="#4">安装gitlab</a>
 
-> 这是企业内部gitlab域名：gitlab.infra.com
+> 这是企业内部gitlab域名：gitlab.infra.local
 
 - 准备k8s集群，确认work节点数 <a href="#2">安装docker</a> <a href="#3">安装k8s</a>
 
@@ -12,7 +12,11 @@
 
 - 准备镜像仓库harbor
 
-> <a href="#1">单机安装harbor</a>
+> <a href="#0">单机安装Harbor</a>
+
+- 准备sonarqube
+
+> <a href="#6">Sonarqube</a>
 
 - 如需翻墙，请越狱：
 
@@ -21,7 +25,7 @@
 
 ## 第一步，准备安装仓库
 
-git clone http://gitlab.infra.com/devopsman/install-jx.git
+git clone https://gitlab.infra.local/devopsman/install-jx.git
 
 > 需要fork这个仓库，fork后如果是 yourname/install-jx，注意下面目录也是yourname
 
@@ -57,13 +61,13 @@ _5z5BDqPTeam-mPELbMs
 搜索：config-root目录中
 
 - 第一处搜索下面的，替换成自己的安装仓库
-  http://gitlab.infra.com/devopsman/install-jx.git ==> 自己的仓库地址
+https://gitlab.infra.local/devopsman/install-jx.git ==> 自己的仓库地址
 
 - 第二处
-  http://gitlab.infra.com  ==> 自己的仓库主域名
+https://gitlab.infra.local  ==> 自己的仓库主域名
 
 - 第三处
-  devopsman-jx-bot ==> 自己仓库的账号
+devopsman-jx-bot ==> 自己仓库的账号
 
 > 修改完成后，提交变更到代码仓库
 
@@ -88,7 +92,7 @@ git clone https://github.com/jenkins-x/jx-git-operator.git
 
 cd jx-git-operator/charts
 
-helm -n jx-git-operator install --set url=http://gitlab.infra.com/devopsman/install-jx.git --set username=devopsman-jx-bot --set password=_5z5BDqPTeam-mPELbMs jx-git-operator jx-git-operator
+helm -n jx-git-operator install --set url=https://gitlab.infra.local/devopsman/install-jx.git --set username=devopsman-jx-bot --set password=_5z5BDqPTeam-mPELbMs jx-git-operator jx-git-operator
 
 > 卸载jx-git-operator
 
@@ -108,7 +112,7 @@ helm -n jx-git-operator list
 
 cd jx-git-operator/charts
 
-helm -n jx-git-operator upgrade --set url=http://gitlab.infra.com/devopsman/install-jx.git --set username=devopsman-jx-bot --set password=_5z5BDqPTeam-mPELbMs jx-git-operator jx-git-operator
+helm -n jx-git-operator upgrade --set url=https://gitlab.infra.local/devopsman/install-jx.git --set username=devopsman-jx-bot --set password=_5z5BDqPTeam-mPELbMs jx-git-operator jx-git-operator
 
 > 安装成功，需要删除 jx-git-operator
 
@@ -189,7 +193,7 @@ kubectl -n jx apply -f ./storage
 
 > 以jx-demo为例，作为gitops的代码仓库
 
-http://gitlab.infra.com/devopsman/jx-demo.git
+https://gitlab.infra.local/devopsman/jx-demo.git
 
 ### config的ConfigMap
 cd install-jx/install
@@ -240,11 +244,11 @@ kubectl -n argocd apply -f ./resources/secret.yaml
 
 > 通过jx-demo-infra这个配置仓库
 
-http://gitlab.infra.com/devopsman/jx-demo-infra.git
+https://gitlab.infra.local/devopsman/jx-demo-infra.git
 
 > 或是配置ssh的仓库
 
-ssh://git@gitlab.infra.com/devopsman/jx-demo-infra.git
+ssh://git@gitlab.infra.local/devopsman/jx-demo-infra.git
 
 跳过ssl验证，添加任何一个ssh的私匙
 
@@ -373,7 +377,8 @@ chmod +x /usr/local/bin/docker-compose
 
 docker-compose --version
 
-## 安装Harbor
+## Install Harbor
+
 ```
 
 ./install.sh --with-chartmuseum --with-notary --with-clair
@@ -407,6 +412,8 @@ docker logout harbor.devopsman.io
 
 admin/Harbor12345
 
+# 重新打镜像，参看 install/docker/Readme.md
+
 ## 为builder的buildpacks重新打镜像
 vi Dockerfile
 ```dockerfile
@@ -421,6 +428,21 @@ RUN update-ca-certificates
 docker build -t harbor.devopsman.io/devopsman/buildpacks-ca:20 .
 
 docker push harbor.devopsman.io/devopsman/buildpacks-ca:20
+
+## 为golangci-lint重新打镜像
+vi Dockerfile
+```dockerfile
+FROM golangci/golangci-lint:v1.44
+
+ENV GOPROXY=https://goproxy.cn,direct
+
+ENV GOPRIVATE=gitlab.infra.local
+
+ENV GO111MODULE=auto
+```
+docker build -t harbor.devopsman.io/devopsman/golangci-lint:v1.44 .
+
+docker push harbor.devopsman.io/devopsman/golangci-lint:v1.44
 
 ## 如果需要导入证书到服务器上（每个节点）
 
@@ -490,6 +512,7 @@ vi /etc/privoxy/config
 ```shell
 #forward-socks5t / 127.0.0.1:1080 . #全局
 forward-socks5t google.com 0.0.0.0:1080 .  #google.com转发
+forward-socks5t google.golang.org 0.0.0.0:1080 .  #google.golang.org转发
 forward-socks5t gcr.io 0.0.0.0:1080 . #gcr.io转发
 ```
 
@@ -809,3 +832,50 @@ docker run -d --restart always --name gitlab --privileged --hostname harbor.devo
 docker run -d --restart always -p 5432:5432 --name postgres -e POSTGRES_DB=gitlab -e POSTGRES_USER=gitlab -e POSTGRES_PASSWORD=gitlab -v /var/lib/cloudtogo/postgressql:/var/lib/postgresql/data postgres
 
 ```
+
+# <a name="6">安装Sonarqube</a>
+
+## docker安装sonarqube
+mkdir -p /data/sonarqube
+
+docker run --restart=always --name sonarqube -v /data/sonarqube/data:/opt/sonarqube/data -v /data/sonarqube/extensions:/opt/sonarqube/extensions -d -p 9000:9000 sonarqube
+
+登录: http://IP:9000
+
+admin/admin
+
+## k8s安装sonarqube的高可用版本需要license
+```shell
+helm repo add sonarqube https://SonarSource.github.io/helm-chart-sonarqube
+helm repo update
+kubectl create namespace sonarqube-dce
+export JWT_SECRET=$(echo -n "your_secret" | openssl dgst -sha256 -hmac "your_key" -binary | base64)
+helm upgrade --install -n sonarqube-dce sonarqube-dce --set ApplicationNodes.jwtSecret=$JWT_SECRET sonarqube/sonarqube-dce
+
+```
+
+kubectl -n sonarqube-dce apply -f sonarqube-ing.yaml
+
+登录：http://sonarqube.devopsman.io
+
+admin/admin
+
+> 如果是内网域名，需要加入k8s的coredns中
+
+kubectl -n kube-system edit cm coredns
+
+## 创建project，连接到gitlab
+
+jx-demo
+
+https://gitlab.infra.local/api/v4
+
+_5z5BDqPTeam-mPELbMs
+
+选择项目ID: devopsman_jx-demo_AX8klNKSC0ZQ0grt_Om4
+
+## 在sonarqube生成token，copy下来
+My Account -> Security -> Generate Tokens
+
+469d3fcce520017e0cd699706404a4db8a1938e9
+

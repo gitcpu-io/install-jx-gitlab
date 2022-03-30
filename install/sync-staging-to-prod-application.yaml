@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sync-staging-to-prod
+  namespace: argocd
+spec:
+  destination:
+    namespace: jx
+    server: https://10.10.13.200:6443
+  project: default
+  source:
+    helm:
+      valueFiles:
+        - values.yaml
+    path: prod/jx-demo
+    repoURL: ssh://git@gitlab.infra.local/devopsman/jx-demo-infra.git
+    targetRevision: HEAD
+  syncPolicy:
+    retry:
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m0s
+      limit: 2
+    syncOptions:
+      - CreateNamespace=true

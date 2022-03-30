@@ -28,7 +28,7 @@ jxRequirements:
     environmentGitOwner: todo
     gitKind: gitlab
     gitName: gitlab
-    gitServer: http://gitlab.infra.com
+    gitServer: https://gitlab.infra.local
     provider: kubernetes
     registry: ghcr.io
   environments:

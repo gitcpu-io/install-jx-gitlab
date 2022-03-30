@@ -1,0 +1,46 @@
+---
+apiVersion: tekton.dev/v1beta1
+kind: Pipeline
+metadata:
+  name: sonarqube-pipeline
+spec:
+  workspaces:
+    - name: source-workspace
+    - name: sonar-settings
+  tasks:
+    - name: git-clone
+      taskRef:
+        name: git-clone
+      workspaces:
+        - name: output
+          workspace: source-workspace
+      params:
+        - name: url
+#          value: https://github.com/vinamra28/replace-tokens-plugin
+          value: https://gitlab.infra.local/devopsman/jx-demo
+        - name: subdirectory
+          value: ""
+        - name: deleteExisting
+          value: "true"
+        - name: revision
+          value: ""
+    - name: code-analysis
+      taskRef:
+        name: sonarqube-scanner
+      runAfter:
+        - git-clone
+      params:
+        - name: SONAR_HOST_URL
+          value: http://10.10.11.106:9000
+#          value: http://sonarqube.devopsman.io
+        - name: SONAR_LOGIN
+          value: 2cdebd7d168814588cb82937ee524ad113dc57ce
+#          value: 2eff6e1e5acb83cd6716b7656b198cf4518dcc3b
+        - name: SONAR_PROJECT_KEY
+          value: devopsman_jx-demo_AX8g7Xetgni5-QgUloID
+#          value: devopsman_jx-demo_AX8kNOfSiMma7ZsplPQi
+      workspaces:
+        - name: source
+          workspace: source-workspace
+        - name: sonar-settings
+          workspace: sonar-settings

@@ -24,7 +24,7 @@ spec:
       default: --verbose
     - name: version
       description: golangci-lint version to use
-      default: "v1.39"
+      default: "v1.44"
     - name: GOOS
       description: "running operating system target"
       default: linux
@@ -48,10 +48,15 @@ spec:
       mountPath: /workspace/src/$(params.package)
   steps:
     - name: lint
-      image: docker.io/golangci/golangci-lint:$(params.version)
+      image: harbor.devopsman.io/devopsman/golangci-lint:$(params.version)
       workingDir: $(workspaces.output.path)/$(params.context)
       script: |
-        golangci-lint run $(params.flags)
+        go version
+        go env
+        pwd
+        go mod tidy
+        ls -la
+        golangci-lint run --timeout 3m $(params.flags)
       env:
         - name: GOPATH
           value: /workspace

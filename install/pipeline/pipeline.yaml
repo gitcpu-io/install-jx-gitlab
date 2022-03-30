@@ -15,13 +15,6 @@ spec:
     - name: repo-infra
     - name: deploy-path
 
-#    - name: argocd-url
-#    - name: argocd-secret
-#    - name: app-name
-#    - name: app-revision
-#      type: string
-#      default: "HEAD"
-
   tasks:
     - name: git-clone
       taskRef:
@@ -54,8 +47,9 @@ spec:
           value: $(params.repo-image):$(tasks.git-clone.results.commit)
         - name: ENV_VARS  #测试变量
           value:
-            - "ENV_VAR_1=VALUE_1"
-            - "ENV_VAR_2=VALUE 2"
+            - "GOPROXY=https://goproxy.cn"
+            - "GO111MODULE=auto"
+            - "GOPRIVATE=gitlab.infra.local"
     - name: display-results
       runAfter:
         - buildpacks
@@ -73,25 +67,6 @@ spec:
           value: $(tasks.buildpacks.results.APP_IMAGE_URL)
         - name: COMMIT
           value: $(tasks.git-clone.results.commit)
-
-#    - name: argocd-sync
-#      taskRef:
-#        name: sync
-#      runAfter:
-#        - buildpacks
-#      params:
-#        - name: argocd-url
-#          value: $(params.argocd-url)
-#        - name: argocd-secret
-#          value: $(params.argocd-secret)
-#        - name: repo-image
-#          value: $(params.repo-image)
-#        - name: image-tag
-#          value: $(tasks.git-clone.results.commit)
-#        - name: app-name
-#          value: $(params.app-name)
-#        - name: app-revision
-#          value: $(params.app-revision)
 
     - name: commit-infra
       taskRef:

@@ -1,0 +1,20 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: unit-test-pipeline-run
+spec:
+  workspaces:
+    - name: source-workspace
+      subPath: source
+      persistentVolumeClaim:
+        claimName: buildpacks-source-pvc
+  params:
+    - name: repo-url
+      value: "https://gitlab.infra.local/devopsman/jx-demo" #code repo
+    - name: repo-revision
+      value: ""
+    - name: package
+      value: "jx-demo"
+  pipelineRef:
+    name: unit-test-pipeline
+

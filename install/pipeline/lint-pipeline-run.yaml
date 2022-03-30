@@ -1,0 +1,26 @@
+apiVersion: tekton.dev/v1beta1
+kind: PipelineRun
+metadata:
+  name: lint-pipeline-run
+  namespace: jx
+spec:
+  workspaces:
+    - name: source-workspace
+      subPath: source
+      persistentVolumeClaim:
+        claimName: buildpacks-source-pvc
+    - name: cache-workspace
+      subPath: cache
+      persistentVolumeClaim:
+        claimName: buildpacks-source-pvc
+  params:
+    - name: repo-url
+      value: https://gitlab.infra.local/devopsman/jx-demo
+    - name: GOOS
+      value: linux
+    - name: GOARCH
+      value: amd64
+    - name: version
+      value: v1.39
+  pipelineRef:
+    name: lint-pipeline

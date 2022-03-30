@@ -1,0 +1,103 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: kaniko
+  namespace: jx
+  labels:
+    app.kubernetes.io/version: "0.2"
+  annotations:
+    tekton.dev/pipelines.minVersion: "0.12.1"
+    tekton.dev/platforms: "linux/amd64"
+spec:
+  description: >-
+    This Task is Google Kaniko tool to build containers by source code.
+  params:
+  - name: repo-url
+    description: repo url
+    default: "https://gitlab.infra.local/xiekaifen/jx-demo"
+  - name: context
+    description: Path to the dockerfile build context.
+    default: "."
+  - name: log-level
+    description: kaniko log level(trace, debug, info, warn, error, fatal, panic).
+    default: info
+  - name: log-format
+    description: kaniko log format(text, color, json).
+    default: text
+  - name: version
+    description: kaniko version to use.
+    type: string
+    default: "v1.6.0"
+  - name: cache
+    description: Use cache when building image.
+    type: string
+    default: "false"
+  - name: cache-ttl
+    description: Cache timeout in hours. Defaults to two weeks.
+    type: string
+    default: "336h"
+  - name: dockerfile
+    description: Path to the dockerfile to be built.
+    default: "Dockerfile"
+  - name: insecure
+    description: Push to insecure registry using plain HTTP.
+    type: string
+    default: "true"
+  - name: skip-tls-verify
+    description: Push to insecure registry ignoring TLS verify.
+    type: string
+    default: "true"
+  - name: skip-tls-verify-pull
+    description: Pull from insecure registry ignoring TLS verify.
+    type: string
+    default: "true"
+  - name: insecure-pull
+    description: Pull from insecure registry using plain HTTP.
+    type: string
+    default: "true"
+  - name: cache-repo
+    description: Specify a repository to use as a cache, otherwise one will be inferred from the destination provided.
+    type: string
+    default: ""
+  - name: insecure-registry
+    description: Insecure registry using plain HTTP to push and pull. Set it repeatedly for multiple registries.
+    type: string
+    default: "registry.local"
+  - name: destination
+    description: Registry the final image should be pushed to. Set it repeatedly for multiple destinations.
+    type: string
+    default: ""
+  - name: registry-mirror
+    description: Registry mirror to use as pull-through cache instead of docker.io. Set it repeatedly for multiple mirrors.
+    type: string
+    default: ""
+  - name: no-push
+    type: string
+    default: "true"
+  workspaces:
+  - name: output
+    mountPath: /workspace/output
+  - name: dockerconfig
+    description: Includes a docker `config.json`
+    optional: true
+    mountPath: /kaniko/.docker
+  steps:
+  - name: kaniko
+    image: aiotceo/kaniko-executor:$(params.version)
+    workingDir: $(workspaces.output.path)/$(params.context)
+    args:
+    - --log-format=$(params.log-format)
+    - --registry-mirror=$(params.registry-mirror)
+    - --verbosity=$(params.log-level)
+    - --cache-ttl=$(params.cache-ttl)
+    - --dockerfile=$(workspaces.output.path)/$(params.context)/build/$(params.dockerfile)
+    - --context=$(workspaces.output.path)/$(params.context)
+    - --cache=$(params.cache)
+    - --insecure=$(params.insecure)
+    - --skip-tls-verify=$(params.skip-tls-verify)
+    - --skip-tls-verify-pull=$(params.skip-tls-verify-pull)
+    - --insecure-pull=$(params.insecure-pull)
+    - --cache-repo=$(params.cache-repo)
+    - --insecure-registry=$(params.insecure-registry)
+    - --destination=$(params.destination)
+    - --no-push=$(params.no-push)

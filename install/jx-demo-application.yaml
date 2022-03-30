@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: jx-demo
+  namespace: argocd
+spec:
+  destination:
+    namespace: default
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    helm:
+      valueFiles:
+        - values.yaml
+    path: staging/jx-demo
+    repoURL: ssh://git@gitlab.infra.local/devopsman/jx-demo-infra.git
+    targetRevision: HEAD
+  syncPolicy: {}
